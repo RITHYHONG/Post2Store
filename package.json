@@ -3,12 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack -p 3001",
+    "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "scrape": "python3 scripts/scraper.py",
+    "scrape:all": "python3 scripts/scraper.py --all",
+    "scrape:login": "python3 scripts/scraper.py --login",
+    "scrape:visible": "python3 scripts/scraper.py --no-headless",
+    "scrape:fresh": "python3 scripts/scraper.py --overwrite"
   },
   "dependencies": {
+    "lucide-react": "^1.49.0",
     "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8"
