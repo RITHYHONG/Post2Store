@@ -1,4 +1,4 @@
-# 🦜 Kakapo Storefront
+# 🛍️ Post2Store
 
 > **Turn any Facebook Business Page into a blazing-fast, searchable web product catalog.**
 
@@ -18,7 +18,7 @@ Across Southeast Asia and emerging markets, millions of micro and small merchant
 - Customers cannot easily search, filter by category, or check past stock.
 - High-intent buyers are forced to endlessly scroll or message support for basic inquiries.
 
-**Kakapo Storefront** bridges this gap. It provides an automated, headless crawler that extracts products and photo albums from a Facebook Page, cleans messy post captions, auto-categorizes inventory, and generates an elegant, ultra-fast web showcase.
+**Post2Store** bridges this gap. It provides an automated, headless crawler that extracts products and photo albums from a Facebook Page, cleans messy post captions, auto-categorizes inventory, and generates an elegant, ultra-fast web showcase.
 
 ---
 
@@ -83,8 +83,8 @@ Ensure you have the following installed on your machine:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/kakapo-fb-product-showcase.git
-   cd kakapo-fb-product-showcase
+   git clone https://github.com/your-username/post2store.git
+   cd post2store
    ```
 
 2. **Install web dependencies:**

@@ -105,6 +105,18 @@ export default function Home() {
         )}
       </main>
 
+      {/* Footer */}
+      <footer className="mt-auto border-t border-zinc-200/80 bg-white/60 py-6">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 text-center sm:flex-row sm:px-6 sm:text-left">
+          <p className="text-xs text-zinc-500">
+            Powered by <span className="font-semibold text-zinc-800">Post2Store</span> — Turn social feeds into web catalogs.
+          </p>
+          <p className="text-xs text-zinc-400">
+            Open Source under MIT License
+          </p>
+        </div>
+      </footer>
+
       {/* Product Detail Modal */}
       <ProductModal
         product={selectedProduct}
