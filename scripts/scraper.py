@@ -22,19 +22,117 @@ OUTPUT_CSV = "facebook_photos.csv"
 OUTPUT_JSON = "src/data/products.json"
 
 
-def classify_type(caption: str) -> str:
-    """Infer product type from Cambodian snack/beverage/confectionery keywords."""
+def clean_boilerplate(caption: str) -> str:
+    """Strips shop contact/address footers and phone numbers from post captions."""
     if not caption:
-        return "General"
-    t = caption.lower()
-    if any(k in t for k in ["ភេសជ្ជៈ", "ទឹក", "តែ", "drink", "tea", "beverage", "កាហ្វេ", "coffee", "juice"]):
-        return "Beverage"
-    elif any(k in t for k in ["ស្ករ", "candy", "sweet", "jelly", "ចាហ៊ួយ", "choco", "gummy", "gum", "marshmallow"]):
-        return "Candy / Confectionery"
-    elif any(k in t for k in ["នំ", "oreo", "snack", "biscuit", "cake", "cookie", "ដំឡូង", "សណ្ដែក", "pastry", "chips", "cracker"]):
-        return "Snack / Biscuit"
-    elif any(k in t for k in ["ប្រហិត", "ត្រី", "មី", "food", "squid", "ស្ក្វិត"]):
-        return "Snack / Biscuit"
+        return ""
+    return re.sub(
+        r"(»មានចែកចាយ|អាស័យដ្ឋាន|ផ្ទះលេខ|ខណ្ឌ|រាជធានី|Google Map|Cellcard|Smart|Metfone|📌|📍).*",
+        "",
+        caption,
+        flags=re.DOTALL
+    )
+
+
+def classify_type(caption: str, name: str = "") -> str:
+    """Infer product type with high precision for Cambodian wholesale food/beverage catalog."""
+    clean_cap = clean_boilerplate(caption or "")
+    text = f"{name} {clean_cap}".lower()
+    name_lower = (name or "").lower()
+
+    # 1. Promotional / Non-product announcements
+    if "ទំនិញបោះដុំ ឈុន ហួង #" in name and len(clean_cap.strip()) < 5:
+        return "Store Announcements"
+
+    # 2. Toys & Novelties
+    if any(k in name_lower for k in ["toy", "jewelry box", "surprise gift", "យន្តហោះ (20ដើម)", "claw crane", "មេក្រូ"]):
+        return "Toys & Novelties"
+
+    # 3. Instant Foods, Noodles & HotPot
+    is_noodle = bool(re.search(r"(?<!វីតា)មី", name_lower)) or \
+                any(k in name_lower for k in ["noodle", "ramen", "indomie", "popme", "hotpot", "tteokbokki", "ស៊ុបគាវ", "ដុំស៊ុប"]) or \
+                any(k in clean_cap.lower() for k in ["មីកំប៉ុង", "tteokbokki", "មីស៊ុប", "មី hotpot"])
+    if is_noodle:
+        return "Instant Noodles & Meals"
+
+    # 4. Alcohol & Wine (Check ស្រា without ស្រាប់/ស្រស់, word boundary for rio)
+    has_wine = bool(re.search(r"ស្រា(?![ប់ស])", text)) or \
+               any(k in name_lower for k in ["soju", "wine", "beer", "cldm", "rsq", "jinro", "bingo", "ryu", "rid", "miko"]) or \
+               bool(re.search(r"\brio\b", name_lower))
+    if has_wine:
+        return "Alcohol & Wine"
+
+    # 5. Savory Meat, Seafood & Spicy Snacks
+    is_savory = any(k in name_lower for k in [
+        "សាច់គោងៀត", "គោងៀត", "khobo", "oyaya", "ពោះគោ", "ត្រចៀកជ្រូក", "សាច់បង្គារ", "សាច់ក្ដាម",
+        "បង្កង", "ជើងមឹក", "មឹក", "squid", "hotdog", "សាច់ក្រក", "ប្រហិត", "សរសៃកែង", "សរសៃនាគ",
+        "ទំពាំងហឹរ", "ទំពាំង wanxiao", "តៅហ៊ូ", "ពងក្រួច", "ស្តេកពង", "ham", "100ស្រទាប់", "ប៉ាវហឺ"
+    ]) or any(k in clean_cap.lower() for k in ["សាច់គោងៀត", "គោងៀត", "ពោះគោ", "ត្រចៀកជ្រូក"])
+    if is_savory:
+        return "Savory & Meat Snacks"
+
+    # 6. Condiments, Sauces & Pantry Cooking
+    is_condiment = any(k in name_lower for k in [
+        "ម្សៅស៊ុប", "ប្រេងខ្យង", "mayonnaise", "buldak sauce", "ទឹកជ្រលក់", "ម្សៅក្រូចឆ្មា", "ត្រីខ", "ឈាមទា", "ទំពាំងជ្រក់"
+    ])
+    if is_condiment:
+        return "Cooking & Condiments"
+
+    # 7. Dairy, Butter & Prepared Desserts
+    if any(k in text for k in ["យ៉ាអួ", "យាអ៊ួ", "យ៉ាអួរ", "yogurt", "ប័រក្បាលគោ", "phomai", "ប័រ"]) and "cereal" not in name_lower:
+        return "Dairy & Prepared Desserts"
+    if any(k in name_lower for k in ["បង្អែមសុខភាព", "បង្អែមកំប៉ុង"]):
+        return "Dairy & Prepared Desserts"
+
+    # 8. Dried Fruits, Nuts, Seeds & Cereals
+    name_no_counter = re.sub(r"\(?\d+\s*គ្រាប់\)?", "", name_lower)
+    is_dried = any(k in name_no_counter for k in [
+        "ដំណាប់", "គីមបួយ", "ផ្លែឈើគ្រៀម", "ខ្នុរ", "ចាន់ទី", "គ្រាប់", "almond", "nuts",
+        "សណ្ដែកដី", "ពុទ្រា", "cereal", "ម្សៅឈូក", "ម្សៅធញ្ញជាតិ", "kokokrunch", "ទំពាំងបាយជូរ"
+    ])
+    if is_dried:
+        return "Dried Fruits, Nuts & Cereals"
+
+    # 9. Candy, Chocolate & Jelly
+    is_candy = any(k in name_lower for k in [
+        "ស្ករ", "candy", "gummy", "jelly", "ចាហួយ", "ចាហ៊ួយ", "marshmallow", "សូកូឡា",
+        "choco", "chocolate", "toffee", "mentos", "chocho"
+    ]) or any(k in clean_cap.lower() for k in [
+        "gummy", "ចាហួយ", "ចាហ៊ួយ", "ស្ករគ្រាប់", "ស្ករកៅស៊ូ", "ស្ករបៀម", "ស្ករទន់", "សូកូឡា", "marshmallow"
+    ])
+    if is_candy:
+        if not any(k in name_lower for k in ["cereal", "ទឹក ovaltine"]):
+            return "Candy, Chocolate & Jelly"
+
+    # 10. Beverages & Drinks (Non-Alcoholic)
+    is_drink = any(k in name_lower for k in [
+        "ទឹក", "កាហ្វេ", "coffee", "cafe", "nescafe", "តែ", "tea", "pocari", "soda", "ovaltine",
+        "milo", "beverage", "juice", "drink", "soymilk", "weibao", "monster energy", "coca",
+        "fanta", "aloe", "ត្រចៀកកាំ", "sugar lolo", "khancafe"
+    ]) or any(k in clean_cap.lower() for k in [
+        "ភេសជ្ជៈ", "ទឹកផ្លែឈើ", "ទឹកដោះគោ", "ទឹកក្រូច", "ទឹកដូង", "ទឹកវីតាមីន", "ទឹកត្រចៀកកាំ",
+        "ទឹកប្រទាល", "ទឹកសណ្ដែក", "ទឹកដោះគោជូរ"
+    ])
+    if is_drink:
+        return "Beverages & Drinks"
+
+    # 11. Biscuits, Cookies, Chips & Bakery Snacks
+    clean_text_no_pp = text.replace("ភ្នំពេញ", "")
+    is_snack = any(k in clean_text_no_pp for k in [
+        "នំ", "oreo", "biscuit", "cookie", "cracker", "chip", "chips", "crisp", "crepe",
+        "cake", "ដំឡូង", "ពោតលីង", "popcorn", "pastry", "mochi", "macaron", "snack",
+        "បាញ់ត្រាង", "ស្បែកត្រី", "ក្បាលបង្គារ", "សារាយ", "nori", "pie", "chuba", "mayeff",
+        "chitato", "zenzen", "lotte"
+    ])
+    if is_snack:
+        return "Biscuits, Chips & Snacks"
+
+    # Fallback checking caption
+    if bool(re.search(r"ស្រា(?![ប់ស])", text)):
+        return "Alcohol & Wine"
+    if any(k in text for k in ["យ៉ាអួ", "យាអ៊ួ", "យ៉ាអួរ", "yogurt"]):
+        return "Dairy & Prepared Desserts"
+
     return "General"
 
 
@@ -207,7 +305,7 @@ def scrape_from_feed(max_items: int = 30, headless: bool = True, scrape_all: boo
                     dom_activity_detected = True
 
                     name = clean_product_name(caption, len(final_catalog) + 1)
-                    item_type = classify_type(caption)
+                    item_type = classify_type(caption, name)
 
                     item_record = {
                         "id": str(len(final_catalog) + 1),
@@ -370,7 +468,7 @@ def scrape_from_photos(max_items: int = 30, headless: bool = True) -> List[Dict[
                                 caption = txt
 
                 name = clean_product_name(caption, idx)
-                item_type = classify_type(caption)
+                item_type = classify_type(caption, name)
 
                 if img_url:
                     scraped_data.append({

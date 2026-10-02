@@ -1,0 +1,10 @@
+# Sensitive credentials & tokens
+fb_auth.json
+.env*
+*.pem
+
+# Scraper & working data
+scripts/
+.venv/
+venv/
+*.csv

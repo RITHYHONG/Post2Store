@@ -1,0 +1,17 @@
+# Sensitive credentials & tokens
+fb_auth.json
+.env*
+*.pem
+
+# Scraper & working data
+scripts/
+.venv/
+venv/
+*.csv
+
+# Dependencies & build
+node_modules/
+.next/
+out/
+.git/
+.DS_Store
